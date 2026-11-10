@@ -1,0 +1,14 @@
+iau_abbr,constellation,element,organ,source
+Ari,Aries,Fire / warmth,Fruit,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Tau,Taurus,Earth,Root,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Gem,Gemini,Air / light,Flower,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Cnc,Cancer,Water,Leaf,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Leo,Leo,Fire / warmth,Fruit,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Vir,Virgo,Earth,Root,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Lib,Libra,Air / light,Flower,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Sco,Scorpius,Water,Leaf,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Sgr,Sagittarius,Fire / warmth,Fruit,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Cap,Capricornus,Earth,Root,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Aqr,Aquarius,Air / light,Flower,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Psc,Pisces,Water,Leaf,"Thun constellation-element scheme (after Steiner, Agriculture Course 1924)"
+Oph,Ophiuchus,none (not one of the 12),Neutral,App rule: Ophiuchus has no element in the Thun scheme -> neutral (editable)
