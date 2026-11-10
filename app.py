@@ -104,7 +104,7 @@ theme.inject(PHONE)
 
 # ------------------------------------------------------------------ settings (sidebar, or a panel on a phone)
 if PHONE:
-    st.title("\U0001F33F Gardening Calendar")
+    st.title("\U0001F33F Biodynamic Gardening Calendar")
 with device.input_panel("Your settings: plants, task, dates, time zone"):
     if not PHONE:
         st.header("Your settings")
