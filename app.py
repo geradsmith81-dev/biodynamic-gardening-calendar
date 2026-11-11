@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import biodyn_engine as be   # noqa: E402
 import charts                # noqa: E402
 import device                # noqa: E402
+import preparations as preps  # noqa: E402
 import theme                 # noqa: E402
 
 ICON = os.path.join(be.HERE, "assets", "houseplant_icon.png")
@@ -50,6 +51,28 @@ def get_band_fig(when_iso, tzkey, a_iso, b_iso, compact=False):
     if compact:
         return charts.sky_band_compact(datetime.fromisoformat(when_iso), tz, track)
     return charts.sky_band(datetime.fromisoformat(when_iso), tz, track)
+
+
+@st.cache_data(show_spinner="Working out the times for the preparations ...", max_entries=8)
+def get_prep_context(start_iso, end_iso, tzkey, lat, lon, settings_key):
+    stg_ = be.Settings(**dict(settings_key))
+    a, b = datetime.fromisoformat(start_iso), datetime.fromisoformat(end_iso)
+    ev_ = be.find_events(a, b)
+    return preps.Context(ev_, be.build_intervals(ev_, stg_), a, b, ZoneInfo(tzkey), lat, lon)
+
+
+def period_cards(p):
+    """Phone list of preparation periods."""
+    out = []
+    for _, r in p.iterrows():
+        cls = "best" if r.rating == "Best" else "good"
+        badge = "\u2b50 Best" if r.rating == "Best" else "\u2713 Good"
+        days = f"{r.days} day" + ("s" if r.days > 1 else "")
+        note = f"<br><span class='hp-sub'>{r.note}</span>" if r.note else ""
+        out.append(f"<div class='hp-card'><span class='hp-badge {cls}'>{badge}</span>"
+                   f"<span class='hp-when'>{preps.period_dates(r)}</span><br>"
+                   f"<span class='hp-sub'>{days} \u00b7 first day {r.times} \u00b7 Moon in {r.constellations}</span>{note}</div>")
+    return "".join(out)
 
 
 def fmt_local(series, tz, fmt="%a %d %b %Y, %H:%M"):
@@ -120,11 +143,11 @@ with device.input_panel("Your settings: plants, task, dates, time zone"):
                          format_func=lambda m: calendar.month_name[m])
     n_months = st.slider("How many months to show", 1, 24, 3)
 
+    activity = st.radio("What do you want to do?", acts.activity.tolist())
     st.subheader("Your plants")
     g_label = st.radio("Plant group", groups.plant_group.tolist(),
                        captions=groups.examples.tolist())
     organ = groups.set_index("plant_group").organ[g_label]
-    activity = st.radio("What do you want to do?", acts.activity.tolist())
 
     with st.expander("Rule settings (advanced)"):
         stg = be.Settings()
@@ -168,9 +191,11 @@ st.markdown(
     + ("" if fav == "any" else f", with a **{fav} Moon**")
     + ", outside unfavourable times.")
 
-TABS = (["\u2b50 Best", "\U0001F4C5 Month", "\U0001F30C Sky", "\U0001F319 Events", "\u2139\ufe0f About"] if PHONE else
-        ["\u2b50 Best times", "\U0001F4C5 Month view", "\U0001F30C Sky chart", "\U0001F319 Moon events", "\u2139\ufe0f How it works"])
-tab1, tab2, tab3, tab4, tab5 = st.tabs(TABS)
+TABS = (["\u2b50 Best", "\U0001F4C5 Month", "\U0001F30C Sky", "\U0001F319 Events", "\U0001F9EA Preps", "\u2139\ufe0f About"]
+        if PHONE else
+        ["\u2b50 Best times", "\U0001F4C5 Month view", "\U0001F30C Sky chart", "\U0001F319 Moon events",
+         "\U0001F9EA Preparations", "\u2139\ufe0f How it works"])
+tab1, tab2, tab3, tab4, tab_prep, tab5 = st.tabs(TABS)
 
 with tab1:
     best = windows[windows.rating == "Best"] if len(windows) else windows
@@ -268,6 +293,65 @@ with tab4:
     else:
         st.dataframe(pd.DataFrame({"When (local)": fmt_local(evt.utc, tz), "Event": evt.Event,
                                    "Kind": evt.type.map(labels)}), hide_index=True, width="stretch", height=520)
+
+with tab_prep:
+    PT = preps.table()
+    pick_p = st.selectbox("Preparation", list(dict.fromkeys(PT.prep)), key="prep_pick")
+    dlat, dlon, city = preps.place_for_zone(tzkey)
+    with st.expander(f"Your place for sunrise, sunset and the seasons: {city} "
+                     f"({abs(dlat):.1f}\u00b0 {'N' if dlat >= 0 else 'S'}, {abs(dlon):.1f}\u00b0 {'E' if dlon >= 0 else 'W'})"):
+        st.caption("Taken from your time zone's main city. Type your own latitude and longitude for more exact "
+                   "sunrise and sunset times. A negative latitude means the southern hemisphere, where the seasons "
+                   "are six months later than in the north.")
+        p1, p2 = st.columns(2)
+        plat = p1.number_input("Latitude (\u00b0, south is negative)", -89.0, 89.0, float(dlat), 0.1,
+                               format="%.3f", key=f"plat_{tzkey}")
+        plon = p2.number_input("Longitude (\u00b0, west is negative)", -180.0, 180.0, float(dlon), 0.1,
+                               format="%.3f", key=f"plon_{tzkey}")
+    south = plat < 0
+    p_end = datetime(int(year) + 1, int(month), 1, tzinfo=tz)
+    skey = tuple(sorted(vars(stg).items()))
+    pctx = get_prep_context(start_utc.isoformat(), p_end.astimezone(timezone.utc).isoformat(), tzkey,
+                            round(plat, 3), round(plon, 3), skey)
+    st.caption(f"Looking 12 months ahead from {calendar.month_name[int(month)]} {int(year)} \u00b7 "
+               f"{'southern' if south else 'northern'}-hemisphere seasons \u00b7 times in {tzkey}. "
+               "**Best** = every condition met; **Good** = every condition except the preferred day type.")
+    items = []
+    for i, (_, prow) in enumerate(PT[PT.prep == pick_p].iterrows(), start=1):
+        st.subheader(f"{i}. {prow.task}")
+        st.markdown(preps.rule_text(prow, south, organ))
+        st.markdown(f"**Steiner:** {prow.steiner}  \n**Later practice:** {prow.practice}")
+        st.caption(f"Sources: {prow.source}")
+        w = preps.task_windows(pctx, prow, organ, south)
+        items.append((prow.task, w))
+        per = preps.periods(w, tz)
+        bestp = per[per.rating == "Best"]
+        showp = bestp if len(bestp) else per
+        if not len(per):
+            st.info("No suitable times in the next 12 months with the current settings.")
+            continue
+        if not len(bestp):
+            st.caption("No Best times in the next 12 months; these are the Good times.")
+        if PHONE:
+            st.markdown(period_cards(showp.head(8)), unsafe_allow_html=True)
+            if len(showp) > 8:
+                with st.expander(f"All {len(showp)} periods"):
+                    st.markdown(period_cards(showp), unsafe_allow_html=True)
+        else:
+            st.dataframe(pd.DataFrame({
+                "Rating": showp.rating.map({"Best": "\u2b50 Best", "Good": "\u2713 Good"}),
+                "Dates": [preps.period_dates(r) for _, r in showp.iterrows()], "Days": showp.days,
+                "Times (first day)": showp.times, "Moon in (IAU)": showp.constellations, "Note": showp.note}),
+                hide_index=True, width="stretch", height=min(38 * len(showp) + 40, 300))
+        with st.expander(f"Every window, day by day ({len(w)})"):
+            device.table(pd.DataFrame({
+                "Rating": w.rating, "From": fmt_local(w.start, tz), "Until": fmt_local(w.end, tz, "%H:%M"),
+                "Moon in (IAU)": w.constellations, "Moon": w.direction, "Note": w.note}),
+                phone_cols=["Rating", "From", "Until", "Moon in (IAU)"])
+    if any(len(w) for _, w in items):
+        st.download_button(f"\U0001F4C6 Add the Best times for {pick_p} to my calendar (.ics file)",
+                           preps.to_ics(items, pick_p), file_name=f"{pick_p.split(' (')[0].replace(' ', '_')}.ics",
+                           mime="text/calendar", key="prep_ics")
 
 with tab5:
     with open(os.path.join(be.HERE, "HOW_IT_WORKS.md"), encoding="utf-8") as fh:

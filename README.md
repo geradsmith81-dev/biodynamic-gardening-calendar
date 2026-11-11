@@ -1,6 +1,6 @@
 # Biodynamic Gardening Calendar
 
-Best times to **sow, repot, take cuttings and harvest houseplants** using the biodynamic rhythms of
+Best times to **sow, repot, take cuttings and harvest houseplants, and to make and apply the biodynamic preparations** using the biodynamic rhythms of
 Maria Thun, after Rudolf Steiner's *Agriculture Course* (1924). The Moon is placed on a **sidereal sky chart
 with the official IAU constellation boundaries**: real, unequal star constellations, not 30-degree signs.
 
@@ -12,6 +12,8 @@ with the official IAU constellation boundaries**: real, unequal star constellati
 * **Month view**: one row per day, coloured Leaf / Flower / Fruit / Root, with unfavourable times hatched.
 * **Sky chart**: the Sun, Moon and planets among the IAU constellations, with the Moon's path for the month.
 * **Moon events**: constellation changes, ascending/descending Moon, nodes, perigee, eclipses and phases.
+* **Preparations**: the best times to make, bury, dig up and apply the biodynamic preparations BD 500-508 over the
+  next 12 months (Steiner's seasons, later practice for the Moon and time of day, each rule with its source).
 * **How it works**: the rules, the sources, and why some times differ from printed Thun calendars.
 
 Dates: 1850-2149. Positions: NASA JPL DE440s via [Skyfield](https://rhodesmill.org/skyfield/).
@@ -115,6 +117,8 @@ For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
 | `constellation_organs.csv` | constellation -> element -> day type (editable) |
 | `plant_groups.csv` | plant groups with examples (editable) |
 | `activities.csv` | which Moon direction each task prefers (editable) |
+| `preparations.csv` | rules for the preparations BD 500-508 (editable) |
+| `preparations.py` | works out the preparation times |
 | `HOW_IT_WORKS.md` | explanation shown in the app |
 | `ephem/` | the ephemeris is downloaded here on first start (not stored on GitHub) |
 

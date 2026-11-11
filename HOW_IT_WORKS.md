@@ -17,6 +17,37 @@
 * Constellations follow the **official IAU boundaries** (Delporte, 1930). These are real star constellations of unequal width, not 30-degree signs. For example, Virgo spans about 44 degrees and Scorpius only about 7. On its way round, the Moon also passes through **Ophiuchus**. Depending on the 18.6-year cycle of its orbit, it can also dip for a few hours into **Sextans**, **Cetus** or **Orion**. In 2026-27 it enters Sextans for up to about 10 hours each month.
 * The calculations were checked against JPL Horizons. For the Moon, in 30 out of 30 tests the constellation matched one minute before and one minute after each computed change, and positions agreed within 0.04 arcseconds.
 
+### The biodynamic preparations (BD 500-508)
+The **Preparations** tab shows the best times to make, bury, dig up and apply each preparation, looking 12 months ahead.
+* **Seasons are Steiner's.** In the *Agriculture Course* (GA 327, 1924) he says when each preparation spends its time
+  in the soil:
+  * horn manure (500) over the winter, and horn silica (501) over the summer (lecture 4);
+  * yarrow (502) hung in the summer sun, then buried for the winter;
+  * chamomile (503) and dandelion (506) through the winter;
+  * stinging nettle (504) for a whole year;
+  * oak bark (505) "through fall and winter", in a wet place;
+  * valerian juice (507) pressed and diluted "at any time" (all lecture 5);
+  * horsetail tea (508) against blight (lecture 6).
+* **The Moon and clock-time rules come from later practice, not from Steiner.** Sources differ in the details, so
+  every task shows its source:
+  * Horn manure is sprayed in the late afternoon on a descending Moon, preferably on a Root day.
+  * Horn silica is sprayed around sunrise on an ascending Moon, on the day type of the crop.
+  * Horsetail is sprayed in the four days before Full Moon; for this task perigee is not avoided.
+  * Burying on a descending Moon is common later practice.
+  * Picking flowers on a Flower day with an ascending Moon follows this app's harvest rule.
+* **Your place:** sunrise and sunset come from your time zone's main city, unless you type your own latitude and
+  longitude. In the southern hemisphere every season is shifted by six months.
+* **Changing the rules:** all of these rules are in `preparations.csv`, which can be edited in Excel.
+
+Sources for the preparations:
+* R. Steiner, *Agriculture Course* (GA 327), Koberwitz 1924, lectures 4-6 (rsarchive.org).
+* Biodynamic Association (UK): *Learning Biodynamic Preparations*; *Equisetum (508)*.
+* Biodynamic Association (US): *Biodynamic Preparations Good Practice Manual*.
+* Biodynamic Agriculture Australia: *Working with the Antipodean Astro Calendar*.
+* Dyyna, after E. von Wistinghausen: timing of 500 and 501.
+* Biodynamic Trainee: dates for applying the preparations.
+* Tamil Nadu Agricultural University (TNAU): biodynamic farming.
+
 ### Why some times differ from a printed Thun calendar
 1. The Thun calendar uses **its own constellation boundaries**, not the IAU ones, and it has **no Ophiuchus**. With IAU boundaries, change times can differ by hours. The Moon also spends about a day each month in Ophiuchus (about 23 hours in 2026-27), shown here as neutral by default. You can change this.
 2. The Moon's position as seen from your home is shifted by up to about 1 degree, which is roughly 2 hours of its motion. This is why calendars, and this app, leave a margin around changes.
