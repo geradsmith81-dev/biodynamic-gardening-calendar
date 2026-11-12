@@ -8,6 +8,8 @@ with the official IAU constellation boundaries**: real, unequal star constellati
 ![Sky chart](docs/sky_chart.png)
 
 ## What it shows
+* **Now**: an astrolabe of the sky at this moment for your place (like the Sidereal Oracle's wheel), with what the
+  Moon means for your plants right now and the next Best time.
 * **Best times**: windows for your plant group and task, with downloads as a calendar file (.ics) or spreadsheet (.csv).
 * **Month view**: one row per day, coloured Leaf / Flower / Fruit / Root, with unfavourable times hatched.
 * **Sky chart**: the Sun, Moon and planets among the IAU constellations, with the Moon's path for the month.
@@ -119,6 +121,7 @@ For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
 | `activities.csv` | which Moon direction each task prefers (editable) |
 | `preparations.csv` | rules for the preparations BD 500-508 (editable) |
 | `preparations.py` | works out the preparation times |
+| `astrolabe.py` | draws the astrolabe and the "Right now" summary |
 | `HOW_IT_WORKS.md` | explanation shown in the app |
 | `ephem/` | the ephemeris is downloaded here on first start (not stored on GitHub) |
 

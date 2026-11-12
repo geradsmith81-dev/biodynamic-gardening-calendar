@@ -17,6 +17,22 @@
 * Constellations follow the **official IAU boundaries** (Delporte, 1930). These are real star constellations of unequal width, not 30-degree signs. For example, Virgo spans about 44 degrees and Scorpius only about 7. On its way round, the Moon also passes through **Ophiuchus**. Depending on the 18.6-year cycle of its orbit, it can also dip for a few hours into **Sextans**, **Cetus** or **Orion**. In 2026-27 it enters Sextans for up to about 10 hours each month.
 * The calculations were checked against JPL Horizons. For the Moon, in 30 out of 30 tests the constellation matched one minute before and one minute after each computed change, and positions agreed within 0.04 arcseconds.
 
+### The astrolabe (Now tab)
+The app opens on an astrolabe of the sky at this moment for your place, drawn like the chart wheel of the
+Sidereal Oracle.
+* **The ring** shows the 13 IAU constellations on the ecliptic at their true widths, tinted by day type. Around it
+  is a degree scale of ecliptic longitude.
+* **The plate** is sky above your horizon and earth below. The Ascendant (the point of the ecliptic rising in the
+  east) is at 9 o'clock, and a dashed line marks the MC.
+* **The bodies:** filled symbols are above your horizon, open ones below. The brass rule points to the Moon.
+* **The centre** shows the Moon's phase as you see it.
+* **The "Right now" box** says which day type it is and until when, whether the Moon is ascending or descending,
+  whether this is an unfavourable time, today's sunrise and sunset, and the next Best time for your plants and task.
+* **Accuracy:** the Ascendant and MC were checked against the Sidereal Oracle's engine (agreement within 0.05
+  arcseconds at six times and places). Positions are geocentric; above or below the horizon is worked out for your place.
+* **Your place** is set in the settings ("Your place"). The Sky chart tab shows the same astrolabe for the moment
+  you choose there.
+
 ### The biodynamic preparations (BD 500-508)
 The **Preparations** tab shows the best times to make, bury, dig up and apply each preparation, looking 12 months ahead.
 * **Seasons are Steiner's.** In the *Agriculture Course* (GA 327, 1924) he says when each preparation spends its time

@@ -2,6 +2,7 @@
 Start with:  streamlit run app.py   (or double-click 'Start app.bat')."""
 import calendar
 import os
+import re
 import sys
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo, available_timezones
@@ -13,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import biodyn_engine as be   # noqa: E402
 import charts                # noqa: E402
 import device                # noqa: E402
+import astrolabe             # noqa: E402
 import preparations as preps  # noqa: E402
 import theme                 # noqa: E402
 
@@ -59,6 +61,18 @@ def get_prep_context(start_iso, end_iso, tzkey, lat, lon, settings_key):
     a, b = datetime.fromisoformat(start_iso), datetime.fromisoformat(end_iso)
     ev_ = be.find_events(a, b)
     return preps.Context(ev_, be.build_intervals(ev_, stg_), a, b, ZoneInfo(tzkey), lat, lon)
+
+
+@st.cache_data(show_spinner="Drawing the astrolabe ...", max_entries=16, ttl=3600)
+def get_astrolabe(when_iso, tzkey, lat, lon, place, compact, title=None):
+    st_ = astrolabe.sky_state(datetime.fromisoformat(when_iso), lat, lon)
+    return astrolabe.draw(st_, ZoneInfo(tzkey), place, compact=compact, title=title), st_["pos"], st_["illum"], st_["elong"]
+
+
+@st.cache_data(show_spinner=False, max_entries=8, ttl=900)
+def get_now_summary(now_iso, tzkey, settings_key, organ, activity):
+    return astrolabe.now_summary(datetime.fromisoformat(now_iso), ZoneInfo(tzkey), be.Settings(**dict(settings_key)),
+                                 organ, activity)
 
 
 def period_cards(p):
@@ -136,6 +150,19 @@ with device.input_panel("Your settings: plants, task, dates, time zone"):
     tzkey = st.selectbox("Your time zone (type to search)", zones, index=zones.index(default_zone),
                          help="Only used to show clock times. The Moon's position is the same for everyone on Earth.")
     tz = ZoneInfo(tzkey)
+    dlat, dlon, city = preps.place_for_zone(tzkey)
+    with st.expander(f"Your place: {city} ({abs(dlat):.1f}\u00b0 {'N' if dlat >= 0 else 'S'}, "
+                     f"{abs(dlon):.1f}\u00b0 {'E' if dlon >= 0 else 'W'})"):
+        st.caption("Used for the astrolabe's horizon, sunrise and sunset, and the seasons of the preparations. "
+                   "Taken from your time zone's main city; type your own latitude and longitude to be exact. "
+                   "A negative latitude means the southern hemisphere.")
+        p1, p2 = st.columns(2)
+        plat = p1.number_input("Latitude (\u00b0, south is negative)", -89.0, 89.0, float(dlat), 0.1,
+                               format="%.3f", key=f"plat_{tzkey}")
+        plon = p2.number_input("Longitude (\u00b0, west is negative)", -180.0, 180.0, float(dlon), 0.1,
+                               format="%.3f", key=f"plon_{tzkey}")
+    place_label = city if (round(plat, 3), round(plon, 3)) == (round(dlat, 3), round(dlon, 3)) else \
+        f"{abs(plat):.2f}\u00b0{'N' if plat >= 0 else 'S'} {abs(plon):.2f}\u00b0{'E' if plon >= 0 else 'W'}"
     today = datetime.now(tz).date()
     c1, c2 = st.columns(2)
     year = c1.number_input("Start year", 1850, 2147, today.year, step=1)
@@ -191,11 +218,71 @@ st.markdown(
     + ("" if fav == "any" else f", with a **{fav} Moon**")
     + ", outside unfavourable times.")
 
-TABS = (["\u2b50 Best", "\U0001F4C5 Month", "\U0001F30C Sky", "\U0001F319 Events", "\U0001F9EA Preps", "\u2139\ufe0f About"]
+TABS = (["\U0001F9ED Now", "\u2b50 Best", "\U0001F4C5 Month", "\U0001F30C Sky", "\U0001F319 Events", "\U0001F9EA Preps",
+         "\u2139\ufe0f About"]
         if PHONE else
-        ["\u2b50 Best times", "\U0001F4C5 Month view", "\U0001F30C Sky chart", "\U0001F319 Moon events",
+        ["\U0001F9ED Now", "\u2b50 Best times", "\U0001F4C5 Month view", "\U0001F30C Sky chart", "\U0001F319 Moon events",
          "\U0001F9EA Preparations", "\u2139\ufe0f How it works"])
-tab1, tab2, tab3, tab4, tab_prep, tab5 = st.tabs(TABS)
+tab_now, tab1, tab2, tab3, tab4, tab_prep, tab5 = st.tabs(TABS)
+
+with tab_now:
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    if not (be.EARLIEST < now < be.LATEST):
+        st.info("Today's date is outside the range of the ephemeris (1850-2149).")
+    else:
+        afig, apos, aillum, aelong = get_astrolabe(now.isoformat(), tzkey, round(plat, 3), round(plon, 3),
+                                                   place_label, PHONE)
+        summ = get_now_summary(now.replace(minute=now.minute - now.minute % 10).isoformat(), tzkey,
+                               tuple(sorted(vars(stg).items())), organ, activity)
+        lines = []
+        if summ:
+            nowl = now.astimezone(tz)
+            lines.append(f"**{nowl:%a %d %b, %H:%M}** ({tzkey})")
+            day = f"**{summ['organ']} day**" if summ["organ"] != "Neutral" else "**no day type** (Neutral)"
+            until = (f" until {summ['until'].astimezone(tz):%a %d %b, %H:%M}, then {summ['next_organ']}"
+                     if summ["until"] else "")
+            lines.append(f"{theme.chip(summ['organ'], 'Moon in ' + summ['name'])} {day}{until}")
+            turn = f" until {summ['turn'].astimezone(tz):%a %d %b, %H:%M}" if summ["turn"] else ""
+            lines.append(f"{astrolabe.DIR_TEXT.get(summ['direction'], summ['direction'])} "
+                         f"({'planting time' if summ['direction'] == 'descending' else 'harvest time'}){turn}")
+            lines.append(f"\u26a0 **Unfavourable now:** {summ['avoid']}" if summ["avoid"]
+                         else "\u2713 No unfavourable times right now")
+        lines.append(f"{astrolabe.phase_name(aelong)}, {aillum * 100:.0f}% lit")
+        try:
+            rise, sset = preps.sun_times(now, now, plat, plon, tz)[now.astimezone(tz).date()]
+            lines.append(f"Sun rises {rise.astimezone(tz):%H:%M}, sets {sset.astimezone(tz):%H:%M} ({place_label})")
+        except Exception:
+            pass
+        nxt = windows[(windows.rating == "Best") & (pd.to_datetime(windows.end) > pd.Timestamp(now))] if len(windows) else windows
+        if len(nxt):
+            r0 = nxt.iloc[0]
+            lines.append(f"**Next Best time** to {activity.lower()} ({g_label.lower()}): "
+                         f"{r0.start.to_pydatetime().astimezone(tz):%a %d %b, %H:%M} \u2192 "
+                         f"{r0.end.to_pydatetime().astimezone(tz):%a %d %b, %H:%M}")
+        else:
+            lines.append(f"No Best time to {activity.lower()} in the months shown.")
+        # Markdown is not read inside an HTML block, so **bold** becomes <b>bold</b>
+        box = "<div class='hp-card'>" + "<br>".join(re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", x) for x in lines) + "</div>"
+        if PHONE:
+            st.markdown(box, unsafe_allow_html=True)
+            st.pyplot(afig, width="stretch")
+        else:
+            cl, cr = st.columns([1.25, 1])
+            with cl:
+                st.pyplot(afig, width="stretch")
+            with cr:
+                st.markdown("#### Right now")
+                st.markdown(box, unsafe_allow_html=True)
+                st.caption(astrolabe.legend_text())
+        if PHONE:
+            st.caption(astrolabe.legend_text())
+        apos = apos.assign(**{"day type": [S.organ_of.get(a_, "Neutral (outside zodiac)") for a_ in apos.iau_abbr],
+                              "above horizon": ["yes" if x > 0 else "no" for x in apos.alt]})
+        with st.expander("Positions now"):
+            device.table(apos[["body", "constellation", "day type", "above horizon", "ecl_lon_deg", "alt"]].rename(
+                columns={"body": "Body", "constellation": "IAU constellation", "ecl_lon_deg": "Ecliptic longitude \u00b0",
+                         "alt": "Altitude \u00b0"}).round(1),
+                phone_cols=["Body", "IAU constellation", "day type", "above horizon"])
 
 with tab1:
     best = windows[windows.rating == "Best"] if len(windows) else windows
@@ -265,6 +352,14 @@ with tab3:
     st.caption("The ecliptic band as divided by the official IAU constellation boundaries (Delporte 1930). The thin "
                "line is the Moon's path for the whole month, with dots at local midnight labelled by day; the white "
                "disc is the Moon at the chosen moment. Grey = Ophiuchus; pale = constellations outside the zodiac.")
+    sfig, _, _, _ = get_astrolabe(when.astimezone(timezone.utc).isoformat(), tzkey, round(plat, 3), round(plon, 3),
+                                  place_label, PHONE, f"The sky at the chosen moment \u00b7 {place_label}")
+    if PHONE:
+        st.pyplot(sfig, width="stretch")
+    else:
+        sa, sb_ = st.columns([1.25, 1])
+        sa.pyplot(sfig, width="stretch")
+        sb_.caption(astrolabe.legend_text())
     pos = be.sky_positions(when)
     pos["day type"] = [S.organ_of.get(a, "Neutral (outside zodiac)") for a in pos.iau_abbr]
     device.table(pos.drop(columns=["iau_abbr"]).rename(columns={
@@ -297,24 +392,13 @@ with tab4:
 with tab_prep:
     PT = preps.table()
     pick_p = st.selectbox("Preparation", list(dict.fromkeys(PT.prep)), key="prep_pick")
-    dlat, dlon, city = preps.place_for_zone(tzkey)
-    with st.expander(f"Your place for sunrise, sunset and the seasons: {city} "
-                     f"({abs(dlat):.1f}\u00b0 {'N' if dlat >= 0 else 'S'}, {abs(dlon):.1f}\u00b0 {'E' if dlon >= 0 else 'W'})"):
-        st.caption("Taken from your time zone's main city. Type your own latitude and longitude for more exact "
-                   "sunrise and sunset times. A negative latitude means the southern hemisphere, where the seasons "
-                   "are six months later than in the north.")
-        p1, p2 = st.columns(2)
-        plat = p1.number_input("Latitude (\u00b0, south is negative)", -89.0, 89.0, float(dlat), 0.1,
-                               format="%.3f", key=f"plat_{tzkey}")
-        plon = p2.number_input("Longitude (\u00b0, west is negative)", -180.0, 180.0, float(dlon), 0.1,
-                               format="%.3f", key=f"plon_{tzkey}")
     south = plat < 0
     p_end = datetime(int(year) + 1, int(month), 1, tzinfo=tz)
     skey = tuple(sorted(vars(stg).items()))
     pctx = get_prep_context(start_utc.isoformat(), p_end.astimezone(timezone.utc).isoformat(), tzkey,
                             round(plat, 3), round(plon, 3), skey)
     st.caption(f"Looking 12 months ahead from {calendar.month_name[int(month)]} {int(year)} \u00b7 "
-               f"{'southern' if south else 'northern'}-hemisphere seasons \u00b7 times in {tzkey}. "
+               f"{'southern' if south else 'northern'}-hemisphere seasons for {place_label} \u00b7 times in {tzkey}. "
                "**Best** = every condition met; **Good** = every condition except the preferred day type.")
     items = []
     for i, (_, prow) in enumerate(PT[PT.prep == pick_p].iterrows(), start=1):
