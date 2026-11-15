@@ -122,6 +122,7 @@ For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
 | `preparations.csv` | rules for the preparations BD 500-508 (editable) |
 | `preparations.py` | works out the preparation times |
 | `astrolabe.py` | draws the astrolabe and the "Right now" summary |
+| `LICENSE` | the MIT License (what others may do with the code) |
 | `HOW_IT_WORKS.md` | explanation shown in the app |
 | `ephem/` | the ephemeris is downloaded here on first start (not stored on GitHub) |
 
@@ -130,3 +131,9 @@ For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
 * IAU constellation boundaries: Delporte (1930), as tabulated by Roman (1987).
 * Rules: Maria Thun's biodynamic sowing calendar. Avoidance windows follow Thun and Stella Natura and can be adjusted in the app.
 * Biodynamic timing is a traditional practice. Controlled scientific trials have not shown that the Moon's constellation changes plant growth.
+
+## License
+This project is released under the [MIT License](LICENSE). Copyright (c) 2026 Gerad Smith.
+
+The libraries it uses (Streamlit, Skyfield, NumPy, pandas, Matplotlib, tzdata, tzlocal) keep their own licences.
+The NASA JPL DE440s ephemeris is downloaded from JPL and is not part of this repository.
