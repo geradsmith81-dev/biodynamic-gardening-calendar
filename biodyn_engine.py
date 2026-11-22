@@ -42,6 +42,33 @@ EPHEM_URL = "https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de440s.bsp"
 def ephemeris_present() -> bool:
     return os.path.exists(os.path.join(EPHEM_DIR, EPHEM_FILE))
 
+
+RULE_FILES = ("constellation_organs.csv", "plant_groups.csv", "activities.csv", "preparations.csv")
+
+
+def rules_dir() -> str:
+    """Desktop copy only: the folder for the user's own edited rule files,
+    %LOCALAPPDATA%\\BiodynamicGardeningCalendar\\rules. Empty on the hosted copy.
+    Keeping edited rules there leaves the program folder unchanged, so its start-up file check stays quiet."""
+    if os.environ.get("BIODYNAMIC_DESKTOP") != "1":
+        return ""
+    import desktop
+    return os.path.join(desktop.data_dir(), "rules")
+
+
+def rule_file(name: str) -> str:
+    """The user's own copy of a rule file if there is one, else the standard copy in the program folder."""
+    d = rules_dir()
+    if d:
+        p = os.path.join(d, name)
+        if os.path.isfile(p):
+            return p
+        try:
+            os.makedirs(d, exist_ok=True)
+        except OSError:
+            pass
+    return os.path.join(HERE, name)
+
 ORGANS = ["Leaf", "Flower", "Fruit", "Root"]
 ORGAN_COLOURS = {"Leaf": "#4a90c2", "Flower": "#e3b23c", "Fruit": "#c8553d",
                  "Root": "#8a6a43", "Neutral": "#b9b9b9"}
@@ -67,9 +94,9 @@ class _Sky:
         self.names = dict(load_constellation_names())
         self.abbr_list = sorted(self.names)
         self.abbr_index = {a: i for i, a in enumerate(self.abbr_list)}
-        self.organ_table = pd.read_csv(os.path.join(HERE, "constellation_organs.csv"))
-        self.plant_groups = pd.read_csv(os.path.join(HERE, "plant_groups.csv"))
-        self.activities = pd.read_csv(os.path.join(HERE, "activities.csv"))
+        self.organ_table = pd.read_csv(rule_file("constellation_organs.csv"))
+        self.plant_groups = pd.read_csv(rule_file("plant_groups.csv"))
+        self.activities = pd.read_csv(rule_file("activities.csv"))
         self.organ_of = dict(zip(self.organ_table.iau_abbr, self.organ_table.organ))
         self.element_of = dict(zip(self.organ_table.iau_abbr, self.organ_table.element))
 

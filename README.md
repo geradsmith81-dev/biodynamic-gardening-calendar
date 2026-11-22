@@ -42,10 +42,15 @@ You need two free accounts: **GitHub** (stores the files) and **Streamlit Commun
    paste the lines below, and click **Commit changes**:
    ```
    [server]
+   fileWatcherType = "none"
+   runOnSave = false
    headless = true
 
    [browser]
    gatherUsageStats = false
+
+   [client]
+   toolbarMode = "minimal"
 
    [theme]
    base = "light"
@@ -73,8 +78,10 @@ The app updates itself within a minute. The rule tables `constellation_organs.cs
 `activities.csv` can be edited this way.
 
 **If you already put an earlier version online:** open your repository on GitHub, click **Add file > Upload files**,
-drag in everything from this folder again (files with the same name are replaced; the new folders `assets` and
-`tools` and the new files `device.py` and `theme.py` are added), and click **Commit changes**. Then open the app,
+drag in everything from this folder again (files with the same name are replaced; new files such as `desktop.py`
+and `requirements.in` are added), and click **Commit changes**. Then delete the files that are no longer part of
+the GitHub copy, if your repository still has them: `Start app.bat`, `Create desktop icon.bat` and
+`tools/make_shortcut.ps1` (open each one on GitHub, click the three dots > **Delete file**, then **Commit changes**). Then open the app,
 click **Manage app** (bottom right, only you see it) > the three dots > **Reboot app**.
 
 **If the app goes to sleep:** free apps sleep after a few days without visitors. The next visitor sees a button
@@ -99,12 +106,30 @@ Once the app is online (Steps 1 and 2 above), open its `https://....streamlit.ap
 ---
 
 ## Run it on your own Windows PC instead
-Download this repository (green **Code** button > **Download ZIP**), extract it, and double-click **`Start app.bat`**.
-Double-click **`Create desktop icon.bat`** once to get a desktop and Start-menu icon, "Biodynamic Gardening Calendar", that starts the app in its own window (it replaces an older "Biodynamic Houseplant Calendar" icon).
-You need [Python](https://www.python.org/downloads/); tick "Add python.exe to PATH" when you install it.
-The first start sets things up, which needs the internet and takes a few minutes. After that, the app opens in your browser.
+Use the Windows desktop release, `BiodynamicHouseplantCalendar.zip`, not this repository: it adds the start-up
+files (`Start app.bat`, `Share on this network.bat`, `Create desktop icon.bat`, `tools/launch.py`), the bundled
+NASA ephemeris and a `READ ME FIRST.txt`. Unzip it and double-click **`Start app.bat`**. The first start installs
+the exact tested components (needs the internet, a few minutes) and puts a "Biodynamic Gardening Calendar" icon on
+the Desktop and in the Start menu. The app then opens in its own window, with no console window.
+You need [Python](https://www.python.org/downloads/) 3.12 or newer (tested with 3.15); tick "Add python.exe to
+PATH" when you install it.
+Check the download against `SHA256SUMS.txt` published with the release:
+`Get-FileHash BiodynamicHouseplantCalendar.zip -Algorithm SHA256`.
 
-For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
+### For programmers
+Install the exact, checksum-verified versions the app was tested with (Python 3.12 or newer):
+
+```
+python -m venv .venv
+.venv\Scripts\python -m pip install --require-hashes --only-binary ":all:" -r requirements.txt
+.venv\Scripts\python -m streamlit run app.py --server.address 127.0.0.1
+```
+
+`requirements.in` lists the direct components; `requirements.txt` is the full lock with SHA-256
+hashes (generated with `uv pip compile requirements.in --universal --python-version 3.12
+--generate-hashes --only-binary :all:`). The same lock serves Streamlit Community Cloud.
+
+The NASA ephemeris (32 MB) is downloaded into `ephem/` on the first start.
 
 ## Files
 | File | What it is |
@@ -115,7 +140,7 @@ For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
 | `device.py` | phone layout switch (finds phones by their browser) |
 | `theme.py` | page styles for touch screens and phones |
 | `assets/` | the app icon |
-| `Start app.bat`, `Create desktop icon.bat`, `tools/` | for running on a Windows PC (not used online) |
+| `desktop.py` | desktop-only controls (Quit, network-sharing password); does nothing online |
 | `constellation_organs.csv` | constellation -> element -> day type (editable) |
 | `plant_groups.csv` | plant groups with examples (editable) |
 | `activities.csv` | which Moon direction each task prefers (editable) |
@@ -125,6 +150,17 @@ For programmers: `pip install -r requirements.txt` then `streamlit run app.py`.
 | `LICENSE` | the MIT License (what others may do with the code) |
 | `HOW_IT_WORKS.md` | explanation shown in the app |
 | `ephem/` | the ephemeris is downloaded here on first start (not stored on GitHub) |
+| `requirements.in` | the direct components, pinned to the tested versions |
+| `requirements.txt` | the full lock with SHA-256 hashes (used online and by the Windows setup) |
+
+## Security and privacy
+
+- The Windows desktop copy of Biodynamic Gardening Calendar listens on this computer only (127.0.0.1). "Share on this network.bat" can open it to the local network, protected by a new password each time; only the person at the computer sees the Quit button.
+- The desktop copy keeps its data and logs in `%LOCALAPPDATA%\BiodynamicGardeningCalendar`, checks its program files against `MANIFEST.sha256` at every start, and each release publishes SHA-256 checksums of its zips in `SHA256SUMS.txt`.
+- All components are pinned to exact versions and installed with `--require-hashes`.
+- The desktop-only code (`desktop.py`) does nothing on a hosted copy: no Quit button is shown there.
+- On the desktop copy, edited rule files go in `%LOCALAPPDATA%\BiodynamicGardeningCalendar\rules`, so the program folder stays unchanged. The app keeps no visitor data: settings are not saved.
+- Text from the rule files is shown as text, never as HTML.
 
 ## Credits and note
 * Ephemeris: NASA JPL DE440s (Park et al. 2021). Software: Skyfield, Streamlit, matplotlib, pandas, NumPy.

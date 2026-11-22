@@ -32,7 +32,7 @@ FALLBACK_PLACE = (51.4769, -0.0005, "Greenwich")
 
 
 def table() -> pd.DataFrame:
-    return pd.read_csv(os.path.join(be.HERE, "preparations.csv"), dtype=str).fillna("")
+    return pd.read_csv(be.rule_file("preparations.csv"), dtype=str).fillna("")
 
 
 # ------------------------------------------------------------------ place (from the time zone)

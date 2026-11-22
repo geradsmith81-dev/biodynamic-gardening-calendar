@@ -1,5 +1,7 @@
 """Page styles. Everything here is either inside a touch-screen / narrow-screen @media rule or only used by
 the phone layout, so a computer with a mouse looks exactly as before."""
+import html
+
 import streamlit as st
 
 import biodyn_engine as be
@@ -81,4 +83,4 @@ def tint(hex_colour: str, w: float = 0.6) -> str:
 def chip(organ: str, text: str) -> str:
     """A day-type label: pale tint with dark text (readable), solid colour bar on the left (recognisable)."""
     col = be.ORGAN_COLOURS.get(organ, "#b9b9b9")
-    return f"<span class='hp-chip' style='background:{tint(col)};border-left-color:{col}'>{text}</span>"
+    return f"<span class='hp-chip' style='background:{tint(col)};border-left-color:{col}'>{html.escape(text, quote=False)}</span>"

@@ -1,6 +1,7 @@
 """Biodynamic Gardening Calendar - Streamlit interface.
 Start with:  streamlit run app.py   (or double-click 'Start app.bat')."""
 import calendar
+import html
 import os
 import re
 import sys
@@ -21,6 +22,10 @@ import theme                 # noqa: E402
 ICON = os.path.join(be.HERE, "assets", "houseplant_icon.png")
 st.set_page_config(page_title="Biodynamic Gardening Calendar",
                    page_icon=ICON if os.path.exists(ICON) else "\U0001F33F", layout="wide")
+
+import desktop as dk  # noqa: E402  (desktop-only controls; inert on the hosted copy)
+
+dk.require_password(st)
 
 
 def local_zone_name():
@@ -75,6 +80,11 @@ def get_now_summary(now_iso, tzkey, settings_key, organ, activity):
                                  organ, activity)
 
 
+def h(x):
+    """Text from the CSV rule files (which users may edit) is shown as text, never as HTML."""
+    return html.escape(str(x), quote=False)
+
+
 def period_cards(p):
     """Phone list of preparation periods."""
     out = []
@@ -82,10 +92,10 @@ def period_cards(p):
         cls = "best" if r.rating == "Best" else "good"
         badge = "\u2b50 Best" if r.rating == "Best" else "\u2713 Good"
         days = f"{r.days} day" + ("s" if r.days > 1 else "")
-        note = f"<br><span class='hp-sub'>{r.note}</span>" if r.note else ""
+        note = f"<br><span class='hp-sub'>{h(r.note)}</span>" if r.note else ""
         out.append(f"<div class='hp-card'><span class='hp-badge {cls}'>{badge}</span>"
-                   f"<span class='hp-when'>{preps.period_dates(r)}</span><br>"
-                   f"<span class='hp-sub'>{days} \u00b7 first day {r.times} \u00b7 Moon in {r.constellations}</span>{note}</div>")
+                   f"<span class='hp-when'>{h(preps.period_dates(r))}</span><br>"
+                   f"<span class='hp-sub'>{days} \u00b7 first day {h(r.times)} \u00b7 Moon in {h(r.constellations)}</span>{note}</div>")
     return "".join(out)
 
 
@@ -103,7 +113,7 @@ def window_cards(w, tz):
         badge = "\u2b50 Best" if r.rating == "Best" else "\u2713 Good"
         out.append(f"<div class='hp-card'><span class='hp-badge {cls}'>{badge}</span>"
                    f"<span class='hp-when'>{a:%a %d %b, %H:%M} \u2192 {until}</span><br>"
-                   f"<span class='hp-sub'>{r.hours:.1f} h \u00b7 Moon in {r.constellations} \u00b7 {r.direction} Moon</span></div>")
+                   f"<span class='hp-sub'>{r.hours:.1f} h \u00b7 Moon in {h(r.constellations)} \u00b7 {h(r.direction)} Moon</span></div>")
     return "".join(out)
 
 
@@ -116,7 +126,7 @@ def day_list(rows):
         mark = {"Best": "\u2b50", "Good": "\u2713"}
         extra = [f"<span class='hp-chip {k.lower()}'>{mark[k]} {k} {a}\u2013{b}</span>" for k, a, b in e["rated"]]
         extra += [f"<span class='hp-chip avoid'>\u26a0 avoid {a}\u2013{b}</span>" for _, a, b in e["avoid"]]
-        extra += [f"<span class='hp-sub'>{m}</span>" for m in e["marks"]]
+        extra += [f"<span class='hp-sub'>{h(m)}</span>" for m in e["marks"]]
         out.append(f"<div class='hp-day'><b>{e['day']:%a} {e['day'].day}</b> {types}"
                    + (f"<br>{' '.join(extra)}" if extra else "") + "</div>")
     return "".join(out)
@@ -131,6 +141,7 @@ try:
     S = load_sky()
 except RuntimeError as exc:
     st.error(str(exc))
+    dk.desktop_controls(st)
     st.stop()
 groups = S.plant_groups
 acts = S.activities
@@ -195,6 +206,11 @@ with device.input_panel("Your settings: plants, task, dates, time zone"):
                            ["Neutral (no day type)", "Nearest zodiac constellation"])
         stg.off_zodiac = "Neutral" if off.startswith("Neutral") else "Nearest zodiac"
         min_h = st.number_input("Hide windows shorter than (hours)", 0.0, 12.0, 1.0, 0.5)
+        if be.rules_dir() and dk.client_is_local(st):
+            mine = [n for n in be.RULE_FILES if be.rule_file(n) != os.path.join(be.HERE, n)]
+            st.caption("Your own rule files go in " + be.rules_dir() + " (copy a file there from the program "
+                       "folder, edit it, then restart the app). "
+                       + ("In use now: " + ", ".join(mine) + "." if mine else "None in use now."))
 
 # ------------------------------------------------------------------ compute
 start_local = datetime(int(year), int(month), 1, tzinfo=tz)
@@ -237,30 +253,30 @@ with tab_now:
         lines = []
         if summ:
             nowl = now.astimezone(tz)
-            lines.append(f"**{nowl:%a %d %b, %H:%M}** ({tzkey})")
-            day = f"**{summ['organ']} day**" if summ["organ"] != "Neutral" else "**no day type** (Neutral)"
-            until = (f" until {summ['until'].astimezone(tz):%a %d %b, %H:%M}, then {summ['next_organ']}"
+            lines.append(f"**{nowl:%a %d %b, %H:%M}** ({h(tzkey)})")
+            day = f"**{h(summ['organ'])} day**" if summ["organ"] != "Neutral" else "**no day type** (Neutral)"
+            until = (f" until {summ['until'].astimezone(tz):%a %d %b, %H:%M}, then {h(summ['next_organ'])}"
                      if summ["until"] else "")
             lines.append(f"{theme.chip(summ['organ'], 'Moon in ' + summ['name'])} {day}{until}")
             turn = f" until {summ['turn'].astimezone(tz):%a %d %b, %H:%M}" if summ["turn"] else ""
-            lines.append(f"{astrolabe.DIR_TEXT.get(summ['direction'], summ['direction'])} "
+            lines.append(f"{h(astrolabe.DIR_TEXT.get(summ['direction'], summ['direction']))} "
                          f"({'planting time' if summ['direction'] == 'descending' else 'harvest time'}){turn}")
-            lines.append(f"\u26a0 **Unfavourable now:** {summ['avoid']}" if summ["avoid"]
+            lines.append(f"\u26a0 **Unfavourable now:** {h(summ['avoid'])}" if summ["avoid"]
                          else "\u2713 No unfavourable times right now")
-        lines.append(f"{astrolabe.phase_name(aelong)}, {aillum * 100:.0f}% lit")
+        lines.append(f"{h(astrolabe.phase_name(aelong))}, {aillum * 100:.0f}% lit")
         try:
             rise, sset = preps.sun_times(now, now, plat, plon, tz)[now.astimezone(tz).date()]
-            lines.append(f"Sun rises {rise.astimezone(tz):%H:%M}, sets {sset.astimezone(tz):%H:%M} ({place_label})")
+            lines.append(f"Sun rises {rise.astimezone(tz):%H:%M}, sets {sset.astimezone(tz):%H:%M} ({h(place_label)})")
         except Exception:
             pass
         nxt = windows[(windows.rating == "Best") & (pd.to_datetime(windows.end) > pd.Timestamp(now))] if len(windows) else windows
         if len(nxt):
             r0 = nxt.iloc[0]
-            lines.append(f"**Next Best time** to {activity.lower()} ({g_label.lower()}): "
+            lines.append(f"**Next Best time** to {h(activity.lower())} ({h(g_label.lower())}): "
                          f"{r0.start.to_pydatetime().astimezone(tz):%a %d %b, %H:%M} \u2192 "
                          f"{r0.end.to_pydatetime().astimezone(tz):%a %d %b, %H:%M}")
         else:
-            lines.append(f"No Best time to {activity.lower()} in the months shown.")
+            lines.append(f"No Best time to {h(activity.lower())} in the months shown.")
         # Markdown is not read inside an HTML block, so **bold** becomes <b>bold</b>
         box = "<div class='hp-card'>" + "<br>".join(re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", x) for x in lines) + "</div>"
         if PHONE:
@@ -444,3 +460,4 @@ with tab5:
 st.divider()
 st.caption("Positions: NASA JPL DE440s ephemeris via Skyfield. Constellation boundaries: IAU (Delporte 1930). "
            "Day-type rules after Maria Thun. This calendar is a traditional practice, not a scientific prediction.")
+dk.desktop_controls(st)
